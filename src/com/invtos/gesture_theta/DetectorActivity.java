@@ -62,8 +62,11 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private static final String MB_LOCATION_FILE = "file:///android_asset/multibox_location_priors.txt";
 
   private static final int TF_OD_API_INPUT_SIZE = 300;
-  private static final String TF_OD_API_MODEL_FILE =  "file:///android_asset/ssd_mobilenet_v1_android_export.pb";
-  private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/coco_labels_list.txt";
+//  private static final String TF_OD_API_MODEL_FILE =  "file:///android_asset/ssd_mobilenet_v1_android_export.pb";
+// private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/coco_labels_list.txt";
+
+  private static final String TF_OD_API_MODEL_FILE =  "file:///android_asset/frozen_inference_graph.pb";
+  private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/hand_label_map.pbtxt";
 
 
 
@@ -335,6 +338,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
                 mappedRecognitions.add(result);
 
                 String title = result.getTitle();
+
                 if( title.equals(mObjectNameToFind) ){
                   mObjectNameFound = true;
                 }
