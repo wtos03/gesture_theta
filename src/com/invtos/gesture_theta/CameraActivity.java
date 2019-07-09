@@ -97,8 +97,7 @@ public abstract class CameraActivity extends PluginActivity
   private Date mCaptureTime;
   private final long mThreashIgnore_msec = 15 * 1000; // Capturing interval [msec]
 
-  private final String mObjectToFind = "hand"; // Take picture when the object found. Something to find from assets/coco_labels_list.txt for TensorFlowObjectDetectionAPIModel.
-//  private final String mObjectToFind = "person"; // Take picture when the object found. Something to find from assets/coco_labels_list.txt for TensorFlowObjectDetectionAPIModel.
+  private final String mObjectToFind = "hand";
 
   private boolean isEnded = false;
 
