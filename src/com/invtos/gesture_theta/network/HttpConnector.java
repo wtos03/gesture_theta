@@ -765,83 +765,6 @@ public class HttpConnector {
         }
     }
 
-    // Start Add support Video by Wichai on 20 Jun 2019
-
-    private String setCommandOption(String opt, String val) {
-        HttpURLConnection postConnection = createHttpConnection("POST", "/osc/commands/execute");
-        JSONObject input = new JSONObject();
-        String responseData;
-        String errorMessage = null;
-        InputStream is = null;
-
-        try {
-            // send HTTP POST
-            input.put("name", "camera.setOptions");
-            JSONObject parameters = new JSONObject();
-            JSONObject options = new JSONObject();
-            options.put(opt, val);
-            parameters.put("options", options);
-            input.put("parameters", parameters);
-
-            OutputStream os = postConnection.getOutputStream();
-            os.write(input.toString().getBytes());
-            postConnection.connect();
-            os.flush();
-            os.close();
-
-            is = postConnection.getInputStream();
-            responseData = InputStreamToString(is);
-
-            // parse JSON data
-            JSONObject output = new JSONObject(responseData);
-            String status = output.getString("state");
-
-            if (status.equals("error")) {
-                JSONObject errors = output.getJSONObject("error");
-                errorMessage = errors.getString("message");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            errorMessage = e.toString();
-            InputStream es = postConnection.getErrorStream();
-            try {
-                if (es != null) {
-                    String errorData = InputStreamToString(es);
-                    JSONObject output = new JSONObject(errorData);
-                    JSONObject errors = output.getJSONObject("error");
-                    errorMessage = errors.getString("message");
-                }
-            } catch (IOException e1) {
-                e1.printStackTrace();
-            } catch (JSONException e1) {
-                e1.printStackTrace();
-            } finally {
-                if (es != null) {
-                    try {
-                        es.close();
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                }
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-            errorMessage = e.toString();
-        } finally {
-            if (is != null) {
-                try {
-                    is.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        return errorMessage;
-    }
-
-
-
 
 
     /**
@@ -1128,4 +1051,206 @@ public class HttpConnector {
             }
         }
     }
+// Start Add support Video by Wichai on 20 Jun 2019
+
+    private String setCommandOption(String opt, String val) {
+        HttpURLConnection postConnection = createHttpConnection("POST", "/osc/commands/execute");
+        JSONObject input = new JSONObject();
+        String responseData;
+        String errorMessage = null;
+        InputStream is = null;
+
+        try {
+            // send HTTP POST
+            input.put("name", "camera.setOptions");
+            JSONObject parameters = new JSONObject();
+            JSONObject options = new JSONObject();
+            options.put(opt, val);
+            parameters.put("options", options);
+            input.put("parameters", parameters);
+
+            OutputStream os = postConnection.getOutputStream();
+            os.write(input.toString().getBytes());
+            postConnection.connect();
+            os.flush();
+            os.close();
+
+            is = postConnection.getInputStream();
+            responseData = InputStreamToString(is);
+
+            // parse JSON data
+            JSONObject output = new JSONObject(responseData);
+            String status = output.getString("state");
+
+            if (status.equals("error")) {
+                JSONObject errors = output.getJSONObject("error");
+                errorMessage = errors.getString("message");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            errorMessage = e.toString();
+            InputStream es = postConnection.getErrorStream();
+            try {
+                if (es != null) {
+                    String errorData = InputStreamToString(es);
+                    JSONObject output = new JSONObject(errorData);
+                    JSONObject errors = output.getJSONObject("error");
+                    errorMessage = errors.getString("message");
+                }
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            } catch (JSONException e1) {
+                e1.printStackTrace();
+            } finally {
+                if (es != null) {
+                    try {
+                        es.close();
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            errorMessage = e.toString();
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return errorMessage;
+    }
+
+
+    public ShootResult startVideo(HttpEventListener listener) {
+        ShootResult result = ShootResult.FAIL_DEVICE_BUSY;
+        // set capture mode to image
+
+        String errorMessage = setCommandOption("exposureDelay","5");
+        errorMessage = setCommandOption("captureMode","video");
+
+        if (errorMessage != null) {
+            listener.onError(errorMessage);
+            result = ShootResult.FAIL_DEVICE_BUSY;
+            return result;
+        }
+
+        HttpURLConnection postConnection = createHttpConnection("POST", "/osc/commands/execute");
+        JSONObject input = new JSONObject();
+        String responseData;
+        mHttpEventListener = listener;
+        InputStream is = null;
+
+        try {
+            // send HTTP POST
+            input.put("name", "camera.startCapture");
+
+            OutputStream os = postConnection.getOutputStream();
+            os.write(input.toString().getBytes());
+            postConnection.connect();
+            os.flush();
+            os.close();
+
+            is = postConnection.getInputStream();
+//            responseData = InputStreamToString(is);
+
+            // parse JSON data
+            //           JSONObject output = new JSONObject(responseData);
+            //           String status = output.getString("state");
+//            String commandId = output.getString("id");
+/*
+                if (status.equals("done")) {
+                JSONObject results = output.getJSONObject("results");
+                String lastFileId = results.getString("fileUri");
+
+                mHttpEventListener.onObjectChanged(lastFileId);
+*/
+            //               mHttpEventListener.onCompleted();
+            //               result = ShootResult.SUCCESS;
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            result = ShootResult.FAIL_DEVICE_BUSY;
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+            result = ShootResult.FAIL_DEVICE_BUSY;
+        } finally {
+
+            //  if (is != null) {
+            //      try {
+            //          is.close();
+            //      } catch (IOException e) {
+            //           e.printStackTrace();
+            //      }
+            //   }
+        }
+
+        return result;
+    }
+
+    public ShootResult stopVideo(HttpEventListener listener) {
+        ShootResult result = ShootResult.FAIL_DEVICE_BUSY;
+        // set capture mode to image
+        String errorMessage;
+
+        HttpURLConnection postConnection = createHttpConnection("POST", "/osc/commands/execute");
+        JSONObject input = new JSONObject();
+        String responseData;
+        mHttpEventListener = listener;
+        InputStream is = null;
+
+        try {
+            // send HTTP POST
+            input.put("name", "camera.stopCapture");
+
+            OutputStream os = postConnection.getOutputStream();
+            os.write(input.toString().getBytes());
+            postConnection.connect();
+            os.flush();
+            os.close();
+
+            is = postConnection.getInputStream();
+            responseData = InputStreamToString(is);
+
+            // parse JSON data
+            JSONObject output = new JSONObject(responseData);
+            String status = output.getString("state");
+            //        String commandId = output.getString("id");
+
+            if (status.equals("none")) {
+                JSONObject results = output.getJSONObject("results");
+                String lastFileId = results.getString("fileUri");
+
+                mHttpEventListener.onObjectChanged(lastFileId);
+                mHttpEventListener.onCompleted();
+                result = ShootResult.SUCCESS;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            result = ShootResult.FAIL_DEVICE_BUSY;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            result = ShootResult.FAIL_DEVICE_BUSY;
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return result;
+    }
+
+// End Added by Wichai
+
 }

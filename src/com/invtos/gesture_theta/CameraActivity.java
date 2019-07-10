@@ -36,6 +36,7 @@ import android.os.HandlerThread;
 import android.os.Trace;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
+import android.util.Log;
 import android.util.Size;
 import android.view.KeyEvent;
 import android.view.Surface;
@@ -46,6 +47,7 @@ import com.invtos.gesture_theta.task.TakePictureTask;
 import com.theta360.pluginlibrary.activity.PluginActivity;
 import com.theta360.pluginlibrary.callback.KeyCallback;
 import com.theta360.pluginlibrary.receiver.KeyReceiver;
+import com.theta360.pluginlibrary.values.LedColor;
 import com.theta360.pluginlibrary.values.LedTarget;
 
 import java.nio.ByteBuffer;
@@ -57,7 +59,10 @@ import java.util.Date;
 
 import com.invtos.gesture_theta.env.ImageUtils;
 import com.invtos.gesture_theta.env.Logger;
-import com.invtos.gesture_theta.R; // Explicit import needed for internal Google builds.
+import com.invtos.gesture_theta.task.StopVideoTask;
+import com.invtos.gesture_theta.task.TakeVideoTask;
+
+//import com.invtos.gesture_theta.R; // Explicit import needed for internal Google builds.
 
 import static android.os.SystemClock.sleep;
 
@@ -69,6 +74,7 @@ public abstract class CameraActivity extends PluginActivity
 
   private static final String PERMISSION_CAMERA = Manifest.permission.CAMERA;
   private static final String PERMISSION_STORAGE = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+  private static final String LOG_TAG = CameraActivity.class.getSimpleName();
 
   private boolean debug = false;
 
@@ -100,12 +106,29 @@ public abstract class CameraActivity extends PluginActivity
   private final String mObjectToFind = "hand";
 
   private boolean isEnded = false;
+  private boolean isVideoMode = false;   // Default camera
 
   private final String CLOUD_UPLOAD_RESULT_KEY_NAME = "UploadResult";
   private final int CLOUD_UPLOAD_REQUSEST_CODE = 1;
 
   // Step4: Change to "true" for using Cloud Upload plug-in, 1
   private boolean ENABLE_CLOUD_UPLOAD = false;
+
+
+  private StopVideoTask.Callback mStopVideoTaskCallback = new StopVideoTask.Callback() {
+    @Override
+    public void onStopVideo(String fileUrl) {
+      //fileUrl = "http://127.0.0.1:8080/files/150100525831424d420703bede5d2400/100RICOH/R0010231.JPG"
+      LOGGER.d("onStopVideo: " + fileUrl);
+    }
+  };
+  private TakeVideoTask.Callback mTakeVideoTaskCallback = new TakeVideoTask.Callback() {
+    @Override
+    public void onTakeVideo(String fileUrl) {
+      //fileUrl = "http://127.0.0.1:8080/files/150100525831424d420703bede5d2400/100RICOH/R0010231.JPG"
+      LOGGER.d("onTakeVideo: " + fileUrl);
+    }
+  };
 
   // Step3: Uncomment when taking a photo with WebAPI, 1
   private TakePictureTask.Callback mTakePictureTaskCallback = new TakePictureTask.Callback() {
@@ -191,6 +214,7 @@ public abstract class CameraActivity extends PluginActivity
     // onRestart and onStart will be called.
   }
 
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     LOGGER.d("onCreate " + this);
@@ -199,7 +223,7 @@ public abstract class CameraActivity extends PluginActivity
     mCameraActivityHandler = new Handler();
 
     onSetObjectNameToFind(mObjectToFind);
-
+    isVideoMode = false;
     try {
       SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy/M/dd hh:mm:ss");
       mCaptureTime = simpleDateFormat.parse("2016/10/6 12:00:00"); // initialize to the past
@@ -244,7 +268,20 @@ public abstract class CameraActivity extends PluginActivity
       public void onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyReceiver.KEYCODE_CAMERA) {
           // Step3: Uncomment when taking a photo with WebAPI, 2
-          stopInferenceAndCapture();
+
+          if (isVideoMode)   // Stop VIdeo
+          {
+            notificationLedBlink(LedTarget.LED3, LedColor.WHITE, 100);
+            new StopVideoTask(mStopVideoTaskCallback).execute();
+            sleep (1000);
+            isTakingPicture = false;
+            toggleMode();
+            endProcess();
+          }  // Only stop Video because hand detect when try to press shuttle switch
+
+        }
+        if (keyCode == KeyReceiver.KEYCODE_MEDIA_RECORD) {
+          toggleMode();
         }
       }
 
@@ -296,6 +333,15 @@ public abstract class CameraActivity extends PluginActivity
     new TakePictureTask(mTakePictureTaskCallback).execute();
   }
 
+  protected void stopInferenceAndShootVideo() {
+    stopInference();
+
+    isTakingPicture = true;
+    // Shoot Video
+    new TakeVideoTask(mTakeVideoTaskCallback).execute();
+  }
+
+
 
   protected void stopInference() {
     Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.container);
@@ -308,7 +354,29 @@ public abstract class CameraActivity extends PluginActivity
     }
   }
 
-// Step2: Uncomment when using pluginlibrary 8
+  //Toggle between Video and Camera Mode
+  private void toggleMode()
+  {
+
+    isVideoMode = !isVideoMode;
+    String mode;
+
+    if (isVideoMode) {
+      mode = "Video";
+      notificationLedHide(LedTarget.LED4);
+      notificationLedShow(LedTarget.LED5);
+    }
+    else //Camera Mode
+    {
+      mode = "Camera";
+      notificationLedHide(LedTarget.LED5);
+      notificationLedShow(LedTarget.LED4);
+    }
+    Log.v(LOG_TAG, mode);
+  }
+
+
+  // Step2: Uncomment when using pluginlibrary 8
   private void endProcess() {
     LOGGER.d("CameraActivity::endProcess(): "+ isEnded);
 
@@ -389,7 +457,16 @@ public abstract class CameraActivity extends PluginActivity
       Date currentTime = Calendar.getInstance().getTime();
       long diff_msec = currentTime.getTime() - mCaptureTime.getTime();
       if (diff_msec > mThreashIgnore_msec){
-        stopInferenceAndCapture();
+        notificationLedBlink(LedTarget.LED3, LedColor.RED, 100);
+        isTakingPicture = true;
+        if (isVideoMode)
+        {
+          stopInferenceAndShootVideo();
+ //         new TakeVideoTask(mTakeVideoTaskCallback).execute();
+        }else{
+          stopInferenceAndCapture();
+        }
+        isTakingPicture = false;
         mCaptureTime = currentTime;
       }
     }
