@@ -29,7 +29,7 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:3.4.2'
         classpath 'org.apache.httpcomponents:httpclient:4.5.4'
     }
 }
@@ -78,13 +78,13 @@ project.ext.TMP_DIR   = project.buildDir.toString() + '/downloads'
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 28
     buildToolsVersion '28.0.3'
     if (nativeBuildSystem == 'cmake') {
         defaultConfig {
             applicationId = 'com.invtos.gesture_theta'
             minSdkVersion 25
-            targetSdkVersion 26
+            targetSdkVersion 28
             ndk {
                 abiFilters "${cpuType}"
             }
@@ -138,7 +138,7 @@ android {
         minSdkVersion 25
         versionCode 1
         versionName '1.0.0'
-        targetSdkVersion 26
+        targetSdkVersion 28
     }
     productFlavors {
     }
@@ -198,6 +198,6 @@ dependencies {
     if (nativeBuildSystem == 'cmake' || nativeBuildSystem == 'none') {
         implementation 'org.tensorflow:tensorflow-android:+'
     }
-    implementation 'com.android.support:appcompat-v7:25.4.0'
+    implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation project(path: ':pluginlibrary')
 }
